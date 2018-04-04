@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.js"></script>
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="https://d3js.org/d3-queue.v3.min.js"></script>
+  <script src="src/d3-tip.js"></script><!-- downloaded from https://github.com/VACLab/d3-tip -->
+  <link rel="stylesheet" href="src/styles.css">
+</head>
+
+<body>
+  <div id="map"></div>
+<script>
+//change center
+//units: longitude, latitude
+var center = [7.6869, 45.0703];
+//change file
+//format: geojson EPSG:4326
+var geojson1 = "src/data/0_geo_zone_circoscrizioni_wgs84.geojson";
+//change file
+//format: geojson EPSG:4326
+var geojson2 = "src/data/0_geo_zone_sezioni_censimento_wgs84.geojson";
+//use your own token
+mapboxgl.accessToken = 'pk.eyJ1IjoiZW5qYWxvdCIsImEiOiJjaWhtdmxhNTIwb25zdHBsejk0NGdhODJhIn0.2-F2hS_oTZenAWc0BMf_uw';
+
+// Setup mapbox-gl map
+var map = new mapboxgl.Map({
+    container: 'map', // container id
+    style: 'mapbox://styles/mapbox/light-v9',   //'mapbox://styles/esterpantaleo/cjetr5dlnkl9o2rpdyewhj5vm',
+    center: center,
+    zoom: 10.5
+});
+// Overlay svg layer that we can manipulate with d3
+var container = map.getCanvasContainer();
+var svg = d3.select(container).append('svg');
+
+// Projection functions
+var transform = d3.geoTransform({ point: projectPoint });
+var path = d3.geoPath().projection(transform);
+
+// Define tooltip
+var tip = d3.tip()
+    .attr('class', 'd3-tip')
+    .offset([-10, 0])
+    .html(function(d) {
+        return Object.keys(d).map(function(key) {
+            return "<strong>" + key + ":</strong> <span style='color:red'>" + d[key] + "</span></br>";
+        }).join("");
+    });
+svg.call(tip);
+
+// Load map and datasets
+map.on("load", function () {
+    d3.queue(2)
+        .defer(d3.json, geojson1)
+        //downloaded from https://www.istat.it/it/archivio/124086,
+        //Versione non generalizzata più dettagliata WGS84 UTM32N,
+        //converted the shapefile from WGS84 to EPSG:4326 using qgis
+        .defer(d3.json, geojson2)
+        //downloaded from ....
+        //converted from WGS84 to EPSG:4326 using qgis
+        //.defer(d3.csv, 'src/data/dots.csv')
+        .await(ready);
+});
+
+var legendData = [
+    {
+        color: "black",
+        label: "Sezioni di censimento (ISTAT - 2011)"
+    },
+    {
+        color: "red",
+        label: "Circoscrizioni"
+}];
+
+
+var legendRectSize = 18,
+    legendSpacing = 4
+// Add legend
+var legend = svg.selectAll('.legend')
+  .data(legendData)
+  .enter()
+  .append('g')
+  .attr('class', 'legend')
+  .attr('transform', function(d, i) {
+    var height = legendRectSize + legendSpacing;
+    var offset =  height  * legendData.length / 2;
+    var horz = 200 -2 * legendRectSize;
+    var vert = 150 + i * height - offset;
+    return 'translate(' + horz + ',' + vert + ')';
+});
+
+legend
+  .append('rect')
+  .attr('width', legendRectSize)
+  .attr('height', legendRectSize)
+  .style('fill', function (d) { return d.color; }) 
+  .style('stroke', "black")
+
+legend
+  .append('text')
+  .attr('x', legendRectSize + legendSpacing)
+  .attr('y', legendRectSize - legendSpacing)
+  .text(function (d) {
+    return d.label;
+})
+
+// Project coordinates to the map's current state
+function project(d) {
+    return map.project(new mapboxgl.LngLat(+d[0], +d[1]));
+};
+
+// Project any point (lon, lat) to map's current state
+function projectPoint(lon, lat) { // degrees
+    var point = map.project(new mapboxgl.LngLat(lon, lat));
+    this.stream.point(point.x, point.y);
+};
+
+/*function mouseoverCircle(d) {
+    // Highlight Circle
+    d3.select(this).attr('fill-opacity', 0.9);
+    tip.show(d);
+};*/
+
+function mouseoverPolygon(d) {
+    // Highlight Polygon
+    d3.select(this).attr('fill-opacity', 0.9);
+    tip.show(d.properties);
+    d3.select(this).style("cursor", "pointer"); 
+};
+
+function mouseout(d) {
+    // Reset color
+    d3.select(this).attr('fill-opacity', 0.4);
+    tip.hide();
+};
+
+function ready(error, data1, data2) { //,csv
+    if (error) throw error;
+
+    // Projection functions
+    var transform = d3.geoTransform({ point: projectPoint });
+    var path = d3.geoPath().projection(transform);
+
+    // Draw Circles and Polygons
+    var polygons1, polygons2;
+    //var circles;
+
+/*    // Add circles
+    circles = svg.selectAll("circle")
+        .data(csv)
+        .enter()
+        .append("circle")
+        .attr("r", 6)
+        .attr('fill-opacity', 0.4)
+        .on('mouseover', mouseoverCircle)
+        .on('mouseout', mouseout);*/
+
+     polygons2 = svg.selectAll(".geojson2")
+        .data(data2.features)
+        .enter()
+        .append("path")
+        .attr("class", "path2")
+        .attr('fill-opacity', 0.4)
+        .on('mouseover', mouseoverPolygon)
+        .on('mouseout', mouseout);
+
+
+    polygons1 = svg.selectAll(".geojson1")
+        .data(data1.features)
+        .enter()
+        .append("path")
+        .attr("class", "path1")
+        .attr('fill-opacity', 0.4)
+        .on('mouseover', mouseoverPolygon); 
+
+
+    // Handle updates
+    update();
+    map.on("viewreset", update);
+    map.on("move", update);
+    map.on("moveend", update);
+
+    // Update d3 shapes' positions to the map's current state
+    function update() {
+        //circles.attr("cx", function(d) { return project([d.lon, d.lat]).x; })
+        //    .attr("cy", function(d) { return project([d.lon, d.lat]).y; });
+        polygons1.attr("d", path);
+        polygons2.attr("d", path);
+    };
+};
+</script>
+</body>
+</html>
