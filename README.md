@@ -1,6 +1,6 @@
-A draft visualization to test the geojson files of the neihborhood files of Torino on top of a mapbox, made for the Digital Transformation Team using d3.js.
+A draft visualization to test the geojson files of the neighborhood files of Torino on top of a mapbox, made for the (Digital Transformation Team](https://teamdigitale.governo.it/en/) using d3.js.
 
-To see the visualization go to https://esterpantaleo.github.io/daf-d3-torino/. To run locally cd to the repository main folder, from a terminal:To see the visualization cd to the repository main folder, from a terminal:
+To see the visualization go to [here](https://esterpantaleo.github.io/daf-d3-torino/). To run locally cd to the repository main folder, from a terminal:To see the visualization cd to the repository main folder, from a terminal:
 
     python -m SimpleHTTPServer
 
